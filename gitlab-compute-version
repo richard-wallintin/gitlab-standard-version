@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ -z "$VERSION_FILE_NAME" ]; then
+    VERSION_FILE_NAME="VERSION.txt"
+fi
+
+if [ -z "$RELEASE_BRANCH" ]; then
+    RELEASE_BRANCH=main
+fi
+
+git fetch --tags > /dev/null
+touch "$VERSION_FILE_NAME"
+
+if [ "$RELEASE_BRANCH" = "$CI_COMMIT_BRANCH" ]; then
+    standard-version --skip.commit --skip.tag --skip.changelog --bumpFiles "$VERSION_FILE_NAME" "$@" >&2
+else
+    standard-version --skip.commit --skip.tag --skip.changelog --bumpFiles "$VERSION_FILE_NAME" --prerelease "$CI_COMMIT_BRANCH" "$@" >&2
+fi
+
+export VERSION=$(cat "$VERSION_FILE_NAME")
+echo $VERSION

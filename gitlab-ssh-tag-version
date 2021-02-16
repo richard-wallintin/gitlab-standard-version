@@ -1,0 +1,40 @@
+#!/bin/sh
+
+if [ -z "$TAG" ]; then
+    if [ -z "$VERSION" ]; then
+        if [ -z "$VERSION_FILE_NAME" ]; then
+            VERSION_FILE_NAME="VERSION.txt"
+        fi
+
+        if [ ! -r "$VERSION_FILE_NAME" ]; then
+            >&2 echo "variable \$TAG or \$VERSION or file '$VERSION_FILE_NAME' required"
+            exit 1
+        fi
+
+        export VERSION=$(cat "$VERSION_FILE_NAME")
+    fi
+
+    export TAG="v$VERSION"
+    git tag "$TAG"
+fi
+
+if [ -z "$GIT_PUSH_KEY" ]; then
+    >&2 echo "variable \$GIT_PUSH_KEY required"
+    exit 1
+fi
+
+if [ ! -r "$GIT_PUSH_KEY" ]; then
+    >&2 echo "file '$GIT_PUSH_KEY' is not a readable ssh private key file name"
+    exit 1
+fi
+
+if [ -z "$REPO_SSH_ADDRESS" ]; then
+    >&2 echo "variable \$REPO_SSH_ADDRESS required (git@gitlab-host:/path/to/repo)"
+    exit 1
+fi
+
+git remote set-url --push origin "$REPO_SSH_ADDRESS"
+chmod go-rwx $GIT_PUSH_KEY
+
+export GIT_SSH_COMMAND="ssh -i $GIT_PUSH_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
+exec git push origin "$TAG"
